@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ramadan Food Packs 2026</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PDF & Excel Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f8f4;
+    padding:20px;
+}
+.container{
+    max-width:1000px;
+    margin:auto;
+    background:#fff;
+    padding:20px;
+    border-radius:8px;
+}
+h1{
+    text-align:center;
+    color:#2e7d32;
+}
+form{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap:10px;
+}
+input,button{
+    padding:10px;
+    font-size:14px;
+}
+button{
+    background:#2e7d32;
+    color:#fff;
+    border:none;
+    cursor:pointer;
+}
+button:hover{opacity:0.9}
+.actions button{
+    margin:2px;
+    padding:5px 8px;
+    font-size:12px;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+th,td{
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:left;
+}
+th{
+    background:#e8f5e9;
+}
+.top-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:10px 0;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>Ramadan Food Packs 2026</h1>
+
+<div class="top-bar">
+    <div><b>Total Beneficiaries:</b> <span id="count">0</span></div>
+    <input type="text" id="search" placeholder="Search Name or CNIC">
+</div>
+
+<form id="form">
+    <input type="text" id="name" placeholder="Beneficiary Name" required>
+    <input type="text" id="father" placeholder="Father / Husband Name" required>
+    <input type="text" id="cnic" placeholder="CNIC (35103-1234567-1)" required>
+    <input type="text" id="phone" placeholder="Phone Number" required>
+    <button type="submit">Save Record</button>
+</form>
+
+<div style="margin-top:10px;">
+    <button onclick="exportExcel()">Export to Excel</button>
+    <button onclick="exportPDF()">Download PDF (Full List)</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Father/Husband</th>
+<th>CNIC</th>
+<th>Phone</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+<div style="margin-top:20px; text-align:center; font-size:13px; color:#555;">
+    Prepared by <b>Hassan</b>
+</div>
+
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("ramadanData")) || [];
+let editIndex = -1;
+
+function saveData(){
+    localStorage.setItem("ramadanData", JSON.stringify(data));
+    render();
+}
+
+function render(){
+    const tbody = document.getElementById("table");
+    tbody.innerHTML = "";
+    data.forEach((d,i)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+        <td>${d.name}</td>
+        <td>${d.father}</td>
+        <td>${d.cnic}</td>
+        <td>${d.phone}</td>
+        <td class="actions">
+            <button onclick="editRecord(${i})">Edit</button>
+            <button onclick="deleteRecord(${i})">Delete</button>
+            <button onclick="pdfSlip(${i})">PDF Slip</button>
+        </td>`;
+        tbody.appendChild(tr);
+    });
+    document.getElementById("count").innerText = data.length;
+}
+
+document.getElementById("form").onsubmit = function(e){
+    e.preventDefault();
+    const record = {
+        name: name.value,
+        father: father.value,
+        cnic: cnic.value,
+        phone: phone.value
+    };
+    if(editIndex === -1){
+        data.push(record);
+    }else{
+        data[editIndex] = record;
+        editIndex = -1;
+    }
+    this.reset();
+    saveData();
+};
+
+function editRecord(i){
+    const d = data[i];
+    name.value = d.name;
+    father.value = d.father;
+    cnic.value = d.cnic;
+    phone.value = d.phone;
+    editIndex = i;
+}
+
+function deleteRecord(i){
+    if(confirm("Are you sure to delete this record?")){
+        data.splice(i,1);
+        saveData();
+    }
+}
+
+function exportExcel(){
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ramadan");
+    XLSX.writeFile(wb,"Ramadan_Food_Packs_2026.xlsx");
+}
+
+function exportPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Ramadan Food Packs 2026",14,10);
+    doc.text("Total Beneficiaries: "+data.length,14,18);
+    doc.autoTable({
+        startY:25,
+        head:[["Name","Father/Husband","CNIC","Phone"]],
+        body:data.map(d=>[d.name,d.father,d.cnic,d.phone])
+    });
+    doc.save("Ramadan_Food_Packs_2026.pdf");
+}
+
+function pdfSlip(i){
+    const { jsPDF } = window.jspdf;
+    const d = data[i];
+    const doc = new jsPDF();
+    doc.text("Ramadan Food Pack Slip",20,20);
+    doc.text("Name: "+d.name,20,35);
+    doc.text("Father/Husband: "+d.father,20,45);
+    doc.text("CNIC: "+d.cnic,20,55);
+    doc.text("Phone: "+d.phone,20,65);
+    doc.text("Signature / Thumb:",20,90);
+    doc.rect(20,95,80,20);
+    doc.save(d.name+"_Slip.pdf");
+}
+
+document.getElementById("search").onkeyup = function(){
+    const val = this.value.toLowerCase();
+    document.querySelectorAll("#table tr").forEach(r=>{
+        r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none";
+    });
+};
+
+render();
+</script>
+</body>
+</html>
